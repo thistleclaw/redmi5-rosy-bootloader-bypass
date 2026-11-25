@@ -1,0 +1,15 @@
+# Backups, firmware blobs, and ROM images (NEVER commit device-specific / proprietary images)
+*.bin
+*.img
+*.mbn
+*.mdt
+*.b0[0-9]
+*.zip
+*.log
+*.pub
+adbkey*
+fw_*/
+gpt_backup/
+__pycache__/
+*.pyc
+.DS_Store
