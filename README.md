@@ -1,6 +1,6 @@
-# Xiaomi Redmi 5 (`rosy`) — исследование загрузчика и запуск LineageOS 21 (Android 14)
+# Xiaomi Redmi 5 (`rosy`) — Zero-Cost Bootloader Unlock Bypass & Android 14 (LineageOS 21) Guide
 
-> Эксперимент проводился на китайской версии **Xiaomi Redmi 5 (`rosy`, Snapdragon 450 / SDM450)** с MIUI 9 `V9.2.6.0.0.NDAMIEK`, для которой Mi Unlock возвращал ошибку `20045`. Перед изменением разделов сохраните пользовательские данные, резервные копии GPT, заводской прошивки и разделов `fsg`, `modemst1`, `modemst2` и `persist`.
+> **Disclaimer:** Educational research and hardware recovery documentation for **Xiaomi Redmi 5 (`rosy`, Snapdragon 450 / SDM450)**. Tested on a China-variant device whose official Mi Unlock returned `code: 20045` (fake Global MIUI 9 `V9.2.6.0.0.NDAMIEK` / blocked server unlock). Always back up EFS/IMEI (`fsg`, `modemst1`, `modemst2`, `persist`) and full GPT/firmware before modifying partitions.
 
 ## Why Official Unlock Fails (and Why Simple `devinfo` Patching Bricks to EDL `05c6:900e`)
 
@@ -21,7 +21,7 @@ On Snapdragon 450 (`msm8953` / `rosy`), SBL1 verifies `aboot` (Little Kernel), s
 6. **Split `keymaster.mbn` into PIL segments** (`.mdt` + `.b00`..`.b06`) with [split_mbn_pil.py](scripts/split_mbn_pil.py) and copy them into `/vendor/firmware_mnt/image/` (the `modem` FAT partition) so QSEE can load `keymaster` dynamically at userspace boot.
 7. **Append a 4096-byte ASN.1 DER stub** extracted from stock `boot.img` / `recovery.img` to **every** custom `recovery` (TWRP) and `boot` image using [append_bootsig_stub.py](scripts/append_bootsig_stub.py).
 
-## Запуск Android 11 и Android 14
+## Running Modern Android (11 vs 14)
 
 - **Android 11 (e.g. Evolution X):** Boots using QSEE `keymaster.mbn` loaded by `qseecomd` once `android.hardware.keymaster@3.0-service` runs with `user system`, `group drmrpc system`, and SELinux type `hal_keymaster_qti_exec`.
 - **Android 14 (LineageOS 21 + MindTheGapps 14):**
@@ -29,7 +29,7 @@ On Snapdragon 450 (`msm8953` / `rosy`), SBL1 verifies `aboot` (Little Kernel), s
   - **Fix:** Disable `/vendor/lib64/hw/keystore.msm8953.so` and `/vendor/lib/hw/keystore.msm8953.so` (`*.bak`). AOSP's `android.hardware.keymaster@3.0-impl.so` automatically falls back to built-in `libpuresoftkeymasterdevice.so` (`"Could not find any keystore module, using software-only implementation."`).
   - Also remove `,fileencryption=ice` from `/vendor/etc/fstab.qcom` and format `/data`. See [patch_lineage21_vendor.sh](scripts/patch_lineage21_vendor.sh).
 
-## Содержимое репозитория
+## Repository Contents
 
 | Path | Description |
 | :--- | :--- |
@@ -41,13 +41,13 @@ On Snapdragon 450 (`msm8953` / `rosy`), SBL1 verifies `aboot` (Little Kernel), s
 | [scripts/split_mbn_pil.py](scripts/split_mbn_pil.py) | Splits Qualcomm ELF `.mbn` into `.mdt` + `.bXX` PIL files for `/vendor/firmware_mnt/image/` |
 | [scripts/patch_lineage21_vendor.sh](scripts/patch_lineage21_vendor.sh) | Patches LineageOS 21 `/vendor` in TWRP for software Keymaster fallback and non-FBE `/data` |
 
-## Ограничения и последствия
+## Caveats & Limitations
 
-- **Защита ключей на Android 14.** В проверенной конфигурации используется программный Keymaster (`libpuresoftkeymasterdevice.so`) и отключено файловое шифрование пользовательских данных (FBE). По наблюдениям автора, Gatekeeper (`@1.0`) и сканер отпечатков (`@2.1`, `fpctzapp`) продолжили работать через TrustZone.
+- **Hardware-backed Keystore / StrongBox**: Disabled on Android 14 (uses `libpuresoftkeymasterdevice.so`). Gatekeeper (`@1.0`) and Fingerprint (`@2.1` / `fpctzapp`) still run normally in TrustZone.
 - **Every `boot` / `recovery` flash** (including Magisk patching or ROM updates) **must** pass through [append_bootsig_stub.py](scripts/append_bootsig_stub.py), or `aboot` will panic into `05c6:900e` until restored via EDL.
 - **OTA updates**: Overwrite `/vendor` and `boot`, so re-run [append_bootsig_stub.py](scripts/append_bootsig_stub.py) and [patch_lineage21_vendor.sh](scripts/patch_lineage21_vendor.sh) from TWRP before rebooting to system.
 
-## Благодарности
+## Credits
 
-- [bkerler/edl](https://github.com/bkerler/edl) за инструменты Qualcomm Sahara/Firehose для работы в EDL.
-- [TeamWin / TWRP](https://twrp.me/) и сопровождающим сборок LineageOS для `rosy`.
+- [bkerler/edl](https://github.com/bkerler/edl) for Qualcomm Sahara/Firehose EDL tooling.
+- [TeamWin / TWRP](https://twrp.me/) & LineageOS maintainers for `rosy`.
