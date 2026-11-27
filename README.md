@@ -54,6 +54,7 @@ Flashing Magisk directly in TWRP (or flashing a Magisk-patched `boot.img` from t
 | Path | Description |
 | :--- | :--- |
 | [docs/aboot-reverse-engineering.md](docs/aboot-reverse-engineering.md) | Detailed breakdown of `aboot` verification paths, GPT layout limits, Keymaster/Keystore2 logs, and tradeoffs |
+| [docs/ble-advertising-bypass.md](docs/ble-advertising-bypass.md) | Fixing `BLE advertiser not available` on `rosy` (1-slot BLE controller) via Zygisk + Vector/LSPosed ([RU](docs/ble-advertising-bypass.ru.md)) |
 | [scripts/patch_devinfo.py](scripts/patch_devinfo.py) | Sets `is_unlocked = 1` in `devinfo.bin` (`ANDROID-BOOT!`) |
 | [scripts/patch_splash.py](scripts/patch_splash.py) | Replaces `SPLASH!!` header with `NOSPLASH` in `splash.bin` |
 | [scripts/patch_gpt_keymaster.py](scripts/patch_gpt_keymaster.py) | Renames `keymaster` -> `keymaste1` in primary/backup GPT and updates CRCs |
