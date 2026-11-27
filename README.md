@@ -29,6 +29,24 @@ On Snapdragon 450 (`msm8953` / `rosy`), SBL1 verifies `aboot` (Little Kernel), s
   - **Fix:** Disable `/vendor/lib64/hw/keystore.msm8953.so` and `/vendor/lib/hw/keystore.msm8953.so` (`*.bak`). AOSP's `android.hardware.keymaster@3.0-impl.so` automatically falls back to built-in `libpuresoftkeymasterdevice.so` (`"Could not find any keystore module, using software-only implementation."`).
   - Also remove `,fileencryption=ice` from `/vendor/etc/fstab.qcom` and format `/data`. See [patch_lineage21_vendor.sh](scripts/patch_lineage21_vendor.sh).
 
+## Rooting with Magisk
+
+Flashing Magisk directly in TWRP (or flashing a Magisk-patched `boot.img` from the app) **will brick to EDL (`05c6:900e`)** because `magiskboot` strips the trailing 4 KB `0x30` DER stub when repacking `boot.img`. Additionally, Oreo `aboot` still reports `Device unlocked: false` in `fastboot oem device-info`, so `fastboot flash boot` fails with `Partition flashing is not allowed` — flash via **TWRP** or **EDL** instead.
+
+1. Patch `boot.img` with Magisk and re-append the stock DER stub using [patch_boot_magisk.sh](scripts/patch_boot_magisk.sh):
+   ```bash
+   ./scripts/patch_boot_magisk.sh Magisk.apk lineage21_boot_signedstub.img boot.bin lineage21_boot_magisk_signedstub.img
+   ```
+2. Install the Magisk app and flash the signed-stub image in TWRP:
+   ```bash
+   adb install -r Magisk.apk
+   adb reboot recovery
+   adb push lineage21_boot_magisk_signedstub.img /tmp/boot_magisk.img
+   adb shell "dd if=/tmp/boot_magisk.img of=/dev/block/bootdevice/by-name/boot bs=4096 && sync"
+   adb reboot
+   ```
+3. On Android 14 / Magisk v31+, `su` lives at `/debug_ramdisk/su`. Open the Magisk app after booting to finish setup and manage Superuser permissions.
+
 ## Repository Contents
 
 | Path | Description |
@@ -40,6 +58,7 @@ On Snapdragon 450 (`msm8953` / `rosy`), SBL1 verifies `aboot` (Little Kernel), s
 | [scripts/append_bootsig_stub.py](scripts/append_bootsig_stub.py) | Copies the 4 KB ASN.1 DER signature block from stock `boot`/`recovery` onto any unsigned image |
 | [scripts/split_mbn_pil.py](scripts/split_mbn_pil.py) | Splits Qualcomm ELF `.mbn` into `.mdt` + `.bXX` PIL files for `/vendor/firmware_mnt/image/` |
 | [scripts/patch_lineage21_vendor.sh](scripts/patch_lineage21_vendor.sh) | Patches LineageOS 21 `/vendor` in TWRP for software Keymaster fallback and non-FBE `/data` |
+| [scripts/patch_boot_magisk.sh](scripts/patch_boot_magisk.sh) | Patches `boot.img` with Magisk over ADB and appends the 4 KB DER stub |
 
 ## Caveats & Limitations
 
