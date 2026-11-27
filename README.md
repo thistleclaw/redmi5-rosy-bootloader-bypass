@@ -37,15 +37,17 @@ Flashing Magisk directly in TWRP (or flashing a Magisk-patched `boot.img` from t
    ```bash
    ./scripts/patch_boot_magisk.sh Magisk.apk lineage21_boot_signedstub.img boot.bin lineage21_boot_magisk_signedstub.img
    ```
-2. Install the Magisk app and flash the signed-stub image in TWRP:
+2. Install the Magisk app, flash the signed-stub image in TWRP, and populate `/data/adb/magisk/` (so Magisk does not show *"Requires Additional Setup"*, which would try to re-flash `boot` without the DER stub):
    ```bash
    adb install -r Magisk.apk
    adb reboot recovery
    adb push lineage21_boot_magisk_signedstub.img /tmp/boot_magisk.img
    adb shell "dd if=/tmp/boot_magisk.img of=/dev/block/bootdevice/by-name/boot bs=4096 && sync"
+   adb push magisk_adb_env/* /data/adb/magisk/
+   adb shell "chmod 755 /data/adb/magisk/* && chmod 644 /data/adb/magisk/main.jar /data/adb/magisk/*.sh"
    adb reboot
    ```
-3. On Android 14 / Magisk v31+, `su` lives at `/debug_ramdisk/su`. Open the Magisk app after booting to finish setup and manage Superuser permissions.
+3. On Android 14 / Magisk v31+, `su` lives at `/debug_ramdisk/su` (not in default `adb shell` `PATH`). Never tap OK on *"Requires Additional Setup"* if it ever appears — tap Cancel instead.
 
 ## Repository Contents
 

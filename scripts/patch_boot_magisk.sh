@@ -68,16 +68,29 @@ python3 "$SCRIPT_DIR/append_bootsig_stub.py" \
   "$WORKDIR/new-boot.img" \
   "$OUTPUT_BOOT"
 
+ENV_DIR="$(dirname "$OUTPUT_BOOT")/magisk_adb_env"
+rm -rf "$ENV_DIR" && mkdir -p "$ENV_DIR"
+for f in addon.d.sh boot_patch.sh module_installer.sh uninstaller.sh util_functions.sh main.jar; do
+  unzip -p "$MAGISK_APK" "assets/$f" > "$ENV_DIR/$f"
+done
+for b in bootctl busybox init-ld magisk magiskboot magiskinit magiskpolicy; do
+  unzip -p "$MAGISK_APK" "lib/arm64-v8a/lib${b}.so" > "$ENV_DIR/$b"
+done
+
 cat <<EOF
 
 Done! Next steps:
   1. Install Magisk app:
        adb install -r "$MAGISK_APK"
-  2. Flash "$OUTPUT_BOOT" to 'boot' via TWRP (fastboot flash is blocked by aboot):
+  2. Reboot to TWRP and flash "$OUTPUT_BOOT" + populate /data/adb/magisk
+     (fastboot flash is blocked by aboot, and /data/adb/magisk prevents the
+      "Requires Additional Setup" prompt from trying to re-flash boot without the stub):
        adb reboot recovery
        adb push "$OUTPUT_BOOT" /tmp/boot_magisk.img
        adb shell "dd if=/tmp/boot_magisk.img of=/dev/block/bootdevice/by-name/boot bs=4096 && sync"
+       adb push "$ENV_DIR"/* /data/adb/magisk/
+       adb shell "chmod 755 /data/adb/magisk/* && chmod 644 /data/adb/magisk/main.jar /data/adb/magisk/*.sh"
        adb reboot
-     (Or flash via EDL: edl.py w boot "$OUTPUT_BOOT")
-  3. Open the Magisk app once booted to complete setup and grant Superuser prompts.
+  3. Open the Magisk app (do NOT tap OK if "Requires Additional Setup" ever appears).
+     On Android 14 / Magisk v31+, su is located at /debug_ramdisk/su.
 EOF
